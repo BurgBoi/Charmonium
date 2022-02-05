@@ -2,10 +2,7 @@ package svenhjol.charmonium.helper;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.HugeMushroomBlock;
-import net.minecraft.world.level.block.RotatedPillarBlock;
-import net.minecraft.world.level.block.StemBlock;
+import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Material;
 
@@ -24,10 +21,11 @@ public class WorldHelper {
         return dayTime >= 12700;
     }
 
-    public static boolean isOutside(Player player) {
-        if (!DimensionHelper.isOverworld(player.level))
-            return false; // TODO: configurable outdoor dimensions
+    public static boolean isThundering(Player player) {
+        return player.level.isThundering();
+    }
 
+    public static boolean isOutside(Player player) {
         if (player.isUnderWater()) return false;
 
         int blocks = 16;
@@ -35,25 +33,30 @@ public class WorldHelper {
 
         BlockPos playerPos = player.blockPosition();
 
+        if (player.level.canSeeSky(playerPos)) return true;
+        if (player.level.canSeeSkyFromBelowWater(playerPos)) return true;
+
         for (int i = start; i < start + blocks; i++) {
             BlockPos check = new BlockPos(playerPos.getX(), playerPos.getY() + i, playerPos.getZ());
             BlockState state = player.level.getBlockState(check);
             Block block = state.getBlock();
 
-            if (player.level.canSeeSkyFromBelowWater(check)) return true;
             if (player.level.isEmptyBlock(check)) continue;
 
             // TODO: configurable clear blocks
             if (state.getMaterial() == Material.GLASS
-                || (block instanceof RotatedPillarBlock && state.getMaterial() == Material.WOOD)
-                || block instanceof HugeMushroomBlock
-                || block instanceof StemBlock
+                    || (block instanceof RotatedPillarBlock && state.getMaterial() == Material.WOOD)
+                    || block instanceof LeavesBlock
+                    || block instanceof HugeMushroomBlock
+                    || block instanceof StemBlock
             ) continue;
 
+            if (player.level.canSeeSky(check)) return true;
+            if (player.level.canSeeSkyFromBelowWater(check)) return true;
             if (state.canOcclude()) return false;
         }
 
-        return player.blockPosition().getY() >= 48;
+        return false;
     }
 
     public static boolean isBelowSeaLevel(Player player) {

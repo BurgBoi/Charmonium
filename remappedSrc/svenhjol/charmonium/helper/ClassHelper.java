@@ -7,7 +7,6 @@ import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
-import svenhjol.charmonium.Charmonium;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -64,8 +63,8 @@ public class ClassHelper {
                         }
                         if (jarEntry.getName().startsWith(packageName) && jarEntry.getName().endsWith(".class")) {
                             classes.add(jarEntry.getName()
-                                    .replaceAll("/", "\\.")
-                                    .replace(".class", ""));
+                                .replaceAll("/", "\\.")
+                                .replace(".class", ""));
                         }
                     }
                 } catch (Exception e) {
@@ -118,18 +117,14 @@ public class ClassHelper {
         try {
             List<String> classes = getClassesInPackage(packageName);
 
-            Constructor<ClassPath.ClassInfo> constructor = ClassPath.ClassInfo.class.getDeclaredConstructor(File.class, String.class, ClassLoader.class);
+            Constructor<ClassPath.ClassInfo> constructor = ClassPath.ClassInfo.class.getDeclaredConstructor(String.class, ClassLoader.class);
             constructor.setAccessible(true);
             List<ClassPath.ClassInfo> out = Lists.newArrayList();
-
-            // signature of ClassInfo constructor changed in 21w42a and now requires a file.
-            // This file is just used as a placeholder. It might break in future. I don't know what I'm doing.
-            final File file = new File(Charmonium.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 
             for (String c : classes) {
                 if (c.startsWith(packageName)) {
                     String resource = c.replace('.', '/') + ".class";
-                    out.add(constructor.newInstance(file, resource, classLoader));
+                    out.add(constructor.newInstance(resource, classLoader));
                 }
             }
 

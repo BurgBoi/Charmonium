@@ -1,10 +1,5 @@
 package svenhjol.charmonium.module.extra_music;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.sounds.Music;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.level.biome.Biome;
 import svenhjol.charmonium.Charmonium;
 import svenhjol.charmonium.annotation.ClientModule;
 import svenhjol.charmonium.annotation.Config;
@@ -14,6 +9,11 @@ import svenhjol.charmonium.loader.CharmModule;
 import svenhjol.charmonium.module.player_state.PlayerState;
 
 import javax.annotation.Nullable;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.sound.MusicSound;
+import net.minecraft.sound.SoundEvent;
+import net.minecraft.sound.SoundEvents;
+import net.minecraft.world.biome.Biome;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -53,21 +53,21 @@ public class ExtraMusic extends CharmModule {
     @Override
     public void runWhenEnabled() {
         // static boolean for mixins to check
-        isEnabled = Charmonium.LOADER.isEnabled(ExtraMusic.class);
+        isEnabled = Charmonium.LOADER.isEnabled("extra_music");
 
         // overworld music
         if (playOverworldMusic) {
             getMusicConditions().add(new MusicCondition(MUSIC_OVERWORLD, 1200, 3600, mc ->
                 mc.player != null
-                    && DimensionHelper.isOverworld(mc.player.level)
-                    && mc.player.level.random.nextFloat() < 0.08F
+                    && DimensionHelper.isOverworld(mc.player.world)
+                    && mc.player.world.random.nextFloat() < 0.08F
             ));
 
             // cold music, look for player pos in icy biome
             getMusicConditions().add(new MusicCondition(MUSIC_COLD, 1200, 3600, mc ->
                 mc.player != null
-                    && mc.player.level.getBiome(mc.player.blockPosition()).getBiomeCategory() == Biome.BiomeCategory.ICY
-                    && mc.player.level.random.nextFloat() < 0.2F
+                    && mc.player.world.getBiome(mc.player.getBlockPos()).getCategory() == Biome.Category.ICY
+                    && mc.player.world.random.nextFloat() < 0.2F
             ));
         }
 
@@ -75,9 +75,9 @@ public class ExtraMusic extends CharmModule {
         if (playNetherMusic) {
             getMusicConditions().add(new MusicCondition(MUSIC_NETHER, 1200, 3600, mc ->
                 mc.player != null
-                    && DimensionHelper.isNether(mc.player.level)
-                    && mc.player.blockPosition().getY() < 48
-                    && mc.player.level.random.nextFloat() < 0.33F
+                    && DimensionHelper.isNether(mc.player.world)
+                    && mc.player.getBlockPos().getY() < 48
+                    && mc.player.world.random.nextFloat() < 0.33F
             ));
         }
 
@@ -86,7 +86,7 @@ public class ExtraMusic extends CharmModule {
             getMusicConditions().add(new MusicCondition(MUSIC_RUIN, 1200, 3600, mc ->
                 mc.player != null
                     && PlayerState.insideOverworldRuin
-                    && mc.player.level.random.nextFloat() < 0.33F
+                    && mc.player.world.random.nextFloat() < 0.33F
             ));
         }
 
@@ -95,14 +95,14 @@ public class ExtraMusic extends CharmModule {
             getMusicConditions().add(new MusicCondition(SoundEvents.MUSIC_CREATIVE, 1200, 3600, mc ->
                 mc.player != null
                     && (!mc.player.isCreative() || !mc.player.isSpectator())
-                    && DimensionHelper.isOverworld(mc.player.level)
+                    && DimensionHelper.isOverworld(mc.player.world)
                     && new Random().nextFloat() < 0.25F
             ));
         }
     }
 
     @Nullable
-    public static Music getMusic() {
+    public static MusicSound getMusic() {
         for (MusicCondition c : musicConditions) {
             if (c.handle())
                 return c.getMusic();
@@ -119,28 +119,28 @@ public class ExtraMusic extends CharmModule {
         private final SoundEvent sound;
         private final int minDelay;
         private final int maxDelay;
-        private Predicate<Minecraft> condition;
+        private Predicate<MinecraftClient> condition;
 
-        public MusicCondition(SoundEvent sound, int minDelay, int maxDelay, Predicate<Minecraft> condition) {
+        public MusicCondition(SoundEvent sound, int minDelay, int maxDelay, Predicate<MinecraftClient> condition) {
             this.sound = sound;
             this.minDelay = minDelay;
             this.maxDelay = maxDelay;
             this.condition = condition;
         }
 
-        public MusicCondition(Music music) {
-            this.sound = music.getEvent();
+        public MusicCondition(MusicSound music) {
+            this.sound = music.getSound();
             this.minDelay = music.getMinDelay();
             this.maxDelay = music.getMaxDelay();
         }
 
         public boolean handle() {
             if (condition == null) return false;
-            return condition.test(Minecraft.getInstance());
+            return condition.test(MinecraftClient.getInstance());
         }
 
-        public Music getMusic() {
-            return new Music(sound, minDelay, maxDelay, false);
+        public MusicSound getMusic() {
+            return new MusicSound(sound, minDelay, maxDelay, false);
         }
 
         public SoundEvent getSound() {
